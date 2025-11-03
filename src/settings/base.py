@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "import_export",
     "rest_framework_simplejwt.token_blacklist",
     "users",
+    "products"
 ]
 
 MIDDLEWARE = [
