@@ -1,0 +1,178 @@
+---
+description: "Enforce Rules for DRF project"
+globs:
+  - "**/*.py"
+alwaysApply: true
+---
+
+# Enforce Base Model & Base Serializer Usage
+
+This rule ensures that throughout the project:
+
+- Classes should inherit from your **base model** (`AtomicBaseModel`) not Django’s default `models.Model` directly (if that’s your structure).  
+- For serialization, always use your project’s **BaseSerializer** ( `AtomicSerializer`) instead of DRF’s `serializers.Serializer` or `serializers.ModelSerializer`.
+
+
+
+# Main folder structure
+```
+project_name/
+├── atomicloops/
+├── users/
+├── src/    -> django project
+```
+
+
+# Django App structure
+### always follow this structure
+```
+├── admin.py
+├── apps.py
+├── exceptions.py
+├── filters.py
+├── migrations
+│   ├── __init__.py
+│   └── 0001_initial.py
+├── models.py
+├── permissions.py
+├── serializers.py
+├── tests.py
+├── urls.py
+├── utils.py
+├── tasks.py
+└── views.py
+```
+
+
+## Rule Details & Guidelines
+
+### ✅ What to do (must practices for most cases)
+
+- Define your base model (e.g. `class BaseModel(AtomicBaseModel)`) and have all other models derive from it. import it from `atomicloops.models`. i has id (UUID PK), createdAt (DateTime), updatedAt (DateTime).
+- Define a `BaseSerializer` in your project (maybe wrapping / extending DRF internals but abstracted away). import it from `atomicloops.serializers`.  (only use for AtomicViewSet , for others use serializers.Serializer)
+- Define a `AtomicViewSet` in your project (maybe wrapping / extending DRF internals but abstracted away). import it from `atomicloops.viewsets`. it is inherited from `rest_framework.viewsets.ModelViewSet`. so it by default has all the methods of `ModelViewSet`. along with some additional methods like `multiple_update`, `multiple_create`, `multiple_delete` that uses batch .
+- Define a `AtomicDateFilter` in your project (maybe wrapping / extending DRF internals but abstracted away). import it from `atomicloops.filters`. it is inherited from `django_filters.FilterSet`. so it by default has all the methods of `FilterSet`. along with some additional methods like `filter_fromDate`, `filter_toDate` that uses timezone.
+
+
+- Use imports like:
+
+  ```python
+  from atomicloops.models import AtomicBaseModel
+  from atomicloops.serializers import AtomicSerializer
+  from atomicloops.viewsets import AtomicViewSet
+  from atomicloops.filters import AtomicDateFilter
+  ```
+
+
+### So if users asks to create APIs, always ask and confirm the following things:
+1. what fields are required in models along with data type and nullable or not.
+2. what are the relations between models.
+3. what are the permissions required for the APIs.
+4. what are the filters required for the APIs.
+5. what are the search fields required for the APIs.
+6. what are the ordering fields required for the APIs.
+7. what are the pagination required for the APIs.
+8. what are the extra fields required for the APIs.
+
+
+### using above information, create the models, serializers, viewsets, filters, search fields, ordering fields, pagination fields, extra fields.
+
+
+### ❌ What to avoid (Bad practices)
+
+- Do not use Django’s default `models.Model` directly.
+- Do not use DRF’s `serializers.Serializer` or `serializers.ModelSerializer`.
+- Do not use your own base model or base serializer.
+- Do not use blank=true for any field unless absolutely explicitly needed.
+
+
+### Ideal View will look like
+
+```python
+class TestView(AtomicViewSet):
+    queryset = Test.objects.all()
+    serializer_class = TestSerializer
+    permission_classes = [IsAuthenticated, UsersPermission]  # if needed 
+    filterset_class = TestFilter
+    search_fields = [
+        'field2',
+    ]
+    ordering_fields = (
+        'createdAt',
+        'updatedAt',
+    )
+    ordering = ('-createdAt',)
+```
+
+
+
+### Do not use APIView directly, unless only 1 action is needed. use AtomicViewSet instead.
+
+```python
+class TestView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response("Hello, world!")
+```
+
+
+### Every response json should have defined schema. DO not return raw dictionary. So it become easy to maintain and auto document with swagger.
+
+```python
+return Response({"message": "Hello, world!"})  # Not allowed
+
+#  use this 
+
+class TestResponseSomeAPIViewSerializer(serializers.Serializer):
+    message = serializers.CharField()
+  
+
+class TestAPIView(APIView):
+    def get(self, request):
+        data = {"message": "Hello, world!"}
+        serializer = TestResponseSomeAPIViewSerializer(data)
+        return Response(serializer.data)
+```
+
+
+### Use Nested serializer for complex data. Do not use raw dictionary.
+
+```python
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+
+class LineSummarySerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    product_name = serializers.CharField()
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    quantity = serializers.IntegerField()
+    line_total = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    line_map = serializers.SerializerMethodField()
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ["id", "customer_name", "created_at", "line_map"]
+
+    @extend_schema_field(serializers.DictField(child=LineSummarySerializer()))
+    def get_line_map(self, obj):
+        """
+        Build a dict keyed by product_id -> line summary.
+        Assumes `items` are prefetched in the view.
+        """
+        result = {}
+        for item in obj.items.all():   # ✅ directly use the related manager
+            p = item.product
+            line_total = (p.price or 0) * item.quantity
+            result[str(p.id)] = {
+                "product_id": p.id,
+                "product_name": p.name,
+                "unit_price": p.price,
+                "quantity": item.quantity,
+                "line_total": line_total,
+            }
+        return result
+
+```

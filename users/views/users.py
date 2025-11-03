@@ -113,11 +113,8 @@ class RegisterUserView(APIView):
     def post(self, request, *args, **kwargs):
         try:
             email = request.data.get('email', None)
-            user = Users.objects.get(email=email)
-            if user.isVerified:
-                return Response("User already register", status=status.HTTP_400_BAD_REQUEST)
-            else:
-                user.delete()
+            if Users.objects.filter(email=email).exists():
+                raise Exception("User already exists")
             userInput = request.data
             userInput['otp'] = str(random.randint(100000, 999999))
             userInput["signInMethod"] = "email"
@@ -130,10 +127,8 @@ class RegisterUserView(APIView):
                 return Response("ok", status.HTTP_201_CREATED)
             return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
-        except Users.DoesNotExist:
-            Response("Not Found 404", status=status.HTTP_404_NOT_FOUND)
         except:
-            Response("Internal Server Error", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response("Internal Server Error", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ResendOTPView(APIView):

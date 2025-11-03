@@ -15,3 +15,5 @@ config/nginx/letsencrypt/*
 staticfiles/
 
 celerybeat-schedule
+logs.txt
+.history

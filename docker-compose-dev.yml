@@ -87,3 +87,6 @@ services:
     image: redis
     expose:
       - 6379
+  
+volumes:
+  <volume_name>:

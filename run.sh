@@ -1,7 +1,7 @@
 #!/bin/bash
 modes="  start-dev\n  stop-dev\n  start-prod\n  stop-prod\n  interactive-dev\n  interactive-prod\n  check-syntax\n  start-deploy\n  migrate\n  sync-vault\n  check-setup\n  db-backup"
 mode=$1
-project_name="nighters"
+project_name="django-boilerplate"
 
 if [ "$project_name" == "*****" ]; then
     echo "Please Update the Project Name in run.sh"
