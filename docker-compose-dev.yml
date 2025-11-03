@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: '*****'
+    container_name: 'django-backend'
     user: '${UID}:${GID}'
     environment:
       ENV: dev
@@ -18,7 +18,7 @@ services:
 
   db:
     image: postgres:14
-    container_name: '*****'
+    container_name: 'django-postgres'
     restart: always
     user: postgres
     environment:
@@ -31,12 +31,12 @@ services:
     expose:
       - 5432
     volumes:
-      - <volume_name>:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
 
   rabbit-mq:
     image: rabbitmq:3.7-management
     restart: always
-    container_name: '*****'
+    container_name: 'django-rabbitmq'
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
@@ -45,7 +45,7 @@ services:
       - '15672:15672'
 
   celery:
-    container_name: '*****'
+    container_name: 'django-celery-worker'
     build: .
     command: celery -A src worker -l INFO  -E -f /opt/logs/celery/worker.logs
     volumes:
@@ -57,7 +57,7 @@ services:
       - DJANGO_SETTINGS_MODULE=src.settings.dev
 
   celery-beat:
-    container_name: '*****'
+    container_name: 'django-celery-beat'
     build: .
     command: celery -A src beat -l INFO -f /opt/logs/celery/beat.logs
     volumes:
@@ -69,7 +69,7 @@ services:
       - DJANGO_SETTINGS_MODULE=src.settings.dev
 
   flower:
-    container_name: '*****'
+    container_name: 'django-flower'
     build: .
     command: celery -A src flower --port=5555
     image: mher/flower:0.9.7
@@ -83,10 +83,10 @@ services:
       - rabbit-mq
 
   redis:
-    container_name: '*****'
+    container_name: 'django-redis'
     image: redis
     expose:
       - 6379
-  
+
 volumes:
-  <volume_name>:
+  postgres-data:
