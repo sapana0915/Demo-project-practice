@@ -1,20 +1,21 @@
-from .models import Product
-from atomicloops.filters import AtomicDateFilter, AtomicFilterSet
+from .models import Product, Category
+from atomicloops.filters import AtomicDateFilter, AtomicTimeFilter
 
-class ProductFilter(AtomicFilterSet):
+
+class ProductFilter(AtomicDateFilter, AtomicTimeFilter):
     class Meta:
         model = Product
         fields = {
-            'product_name': ['icontains'],
+            'productName': ['icontains'],
             'price': ['gte', 'lte'],
             'stock': ['gte', 'lte'],
-            'created_at': ['date__gte', 'date__lte'],
+            'createdAt': ['date__gte', 'date__lte'],
         }
 
 
-class CategoryFilter(AtomicFilterSet):
+class CategoryFilter(AtomicDateFilter, AtomicTimeFilter):
     class Meta:
-        model = Product.category.field.related_model
+        model = Category
         fields = {
-            'category_name': ['icontains'],
+            'categoryName': ['icontains'],
         }

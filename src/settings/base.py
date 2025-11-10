@@ -255,6 +255,10 @@ CACHE_TTL = 60 * 5
 # Fix for put/patch api
 APPEND_SLASH = False
 
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Allowed CORS Headers
 CORS_ALLOW_HEADERS = [
     "accept",
